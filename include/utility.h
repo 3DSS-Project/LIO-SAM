@@ -15,8 +15,6 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <opencv/cv.h>
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/impl/search.hpp>
@@ -30,6 +28,8 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h> 
 #include <pcl_conversions/pcl_conversions.h>
+
+#include <opencv2/opencv.hpp>
 
 #include <tf/LinearMath/Quaternion.h>
 #include <tf/transform_listener.h>
@@ -151,6 +151,10 @@ public:
     float globalMapVisualizationPoseDensity;
     float globalMapVisualizationLeafSize;
 
+    //IMU
+    float imu_freq;
+    float imu_ms;
+
     ParamServer()
     {
         nh.param<std::string>("/robot_id", robot_id, "roboat");
@@ -172,6 +176,10 @@ public:
 
         nh.param<bool>("lio_sam/savePCD", savePCD, false);
         nh.param<std::string>("lio_sam/savePCDDirectory", savePCDDirectory, "/Downloads/LOAM/");
+
+        //imu frequency
+        nh.param<float>("lio_sam/imu_freq", imu_freq, 500.0);
+        imu_ms = 1.0/imu_freq;
 
         std::string sensorStr;
         nh.param<std::string>("lio_sam/sensor", sensorStr, "");

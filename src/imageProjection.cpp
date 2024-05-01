@@ -1,5 +1,6 @@
 #include "utility.h"
 #include "lio_sam/cloud_info.h"
+#include <unistd.h>
 
 struct VelodynePointXYZIRT
 {
@@ -83,6 +84,8 @@ private:
     double timeScanCur;
     double timeScanEnd;
     std_msgs::Header cloudHeader;
+    
+    bool initialCloud;
 
     vector<int> columnIdnCountVec;
 
@@ -102,6 +105,8 @@ public:
         resetParameters();
 
         pcl::console::setVerbosityLevel(pcl::console::L_ERROR);
+
+        initialCloud = false;
     }
 
     void allocateMemory()
@@ -151,24 +156,27 @@ public:
         sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
 
         std::lock_guard<std::mutex> lock1(imuLock);
-        imuQueue.push_back(thisImu);
-
+        //imuQueue.push_back(thisImu);
+        
+        if(initialCloud){
+            imuQueue.push_back(thisImu);
+        }
         // debug IMU data
-        // cout << std::setprecision(6);
-        // cout << "IMU acc: " << endl;
-        // cout << "x: " << thisImu.linear_acceleration.x << 
-        //       ", y: " << thisImu.linear_acceleration.y << 
-        //       ", z: " << thisImu.linear_acceleration.z << endl;
-        // cout << "IMU gyro: " << endl;
-        // cout << "x: " << thisImu.angular_velocity.x << 
-        //       ", y: " << thisImu.angular_velocity.y << 
-        //       ", z: " << thisImu.angular_velocity.z << endl;
-        // double imuRoll, imuPitch, imuYaw;
-        // tf::Quaternion orientation;
-        // tf::quaternionMsgToTF(thisImu.orientation, orientation);
-        // tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
-        // cout << "IMU roll pitch yaw: " << endl;
-        // cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
+        cout << std::setprecision(6);
+        cout << "IMU acc: " << endl;
+        cout << "x: " << thisImu.linear_acceleration.x << 
+              ", y: " << thisImu.linear_acceleration.y << 
+              ", z: " << thisImu.linear_acceleration.z << endl;
+        cout << "IMU gyro: " << endl;
+        cout << "x: " << thisImu.angular_velocity.x << 
+              ", y: " << thisImu.angular_velocity.y << 
+              ", z: " << thisImu.angular_velocity.z << endl;
+        double imuRoll, imuPitch, imuYaw;
+        tf::Quaternion orientation;
+        tf::quaternionMsgToTF(thisImu.orientation, orientation);
+        tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
+        cout << "IMU roll pitch yaw: " << endl;
+        cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
     }
 
     void odometryHandler(const nav_msgs::Odometry::ConstPtr& odometryMsg)
@@ -179,6 +187,10 @@ public:
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg)
     {
+        if(!initialCloud){
+            initialCloud = true;
+        }
+        
         if (!cachePointCloud(laserCloudMsg))
             return;
 

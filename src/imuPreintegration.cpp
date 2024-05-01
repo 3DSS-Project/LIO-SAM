@@ -355,7 +355,18 @@ public:
             double imuTime = ROS_TIME(thisImu);
             if (imuTime < currentCorrectionTime - delta_t)
             {
-                double dt = (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                //double dt = (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                double dt = (lastImuT_opt < 0) ? imu_ms : (imuTime - lastImuT_opt);
+                //std::cout << "DT: " << dt << std::endl;
+                //assert(dt >0);
+                //if (dt <= 0.8*imu_ms || dt >= imu_ms*1.2 ){
+                //    dt = imu_ms;
+                //}
+                if (dt <= 0.95*imu_ms || dt >= imu_ms*1.95 ){
+                    //readjust timestamp due to imu delay
+                    imuTime = (imuTime - dt) + imu_ms;
+                    dt = imu_ms;
+                }
                 imuIntegratorOpt_->integrateMeasurement(
                         gtsam::Vector3(thisImu->linear_acceleration.x, thisImu->linear_acceleration.y, thisImu->linear_acceleration.z),
                         gtsam::Vector3(thisImu->angular_velocity.x,    thisImu->angular_velocity.y,    thisImu->angular_velocity.z), dt);
@@ -423,7 +434,15 @@ public:
             {
                 sensor_msgs::Imu *thisImu = &imuQueImu[i];
                 double imuTime = ROS_TIME(thisImu);
-                double dt = (lastImuQT < 0) ? (1.0 / 500.0) :(imuTime - lastImuQT);
+                //double dt = (lastImuQT < 0) ? (1.0 / 500.0) :(imuTime - lastImuQT);
+                double dt = (lastImuQT < 0) ? imu_ms :(imuTime - lastImuQT);
+                //if (dt <= 0.8*imu_ms || dt >= imu_ms*1.2 ){
+                //    dt = imu_ms;
+                //}
+                if (dt <= 0.95*imu_ms || dt >= imu_ms*1.95 ){
+                    imuTime = (imuTime - dt) + imu_ms;
+                     dt = imu_ms;
+                }
 
                 imuIntegratorImu_->integrateMeasurement(gtsam::Vector3(thisImu->linear_acceleration.x, thisImu->linear_acceleration.y, thisImu->linear_acceleration.z),
                                                         gtsam::Vector3(thisImu->angular_velocity.x,    thisImu->angular_velocity.y,    thisImu->angular_velocity.z), dt);
@@ -468,7 +487,22 @@ public:
             return;
 
         double imuTime = ROS_TIME(&thisImu);
-        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        //double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        
+        std::cout.precision(17);
+        // std::cout << "Last IMU Time" << lastImuT_imu << " IMU TIME: " << imuTime << std::endl;
+        double dt = (lastImuT_imu < 0) ? imu_ms : (imuTime - lastImuT_imu);
+        // std::cout << "DT: " << dt << std::endl;
+        if (dt <= 0.8*imu_ms || dt >= imu_ms*1.2 ){
+            dt = imu_ms;
+        }
+        if (dt <= 0.95*imu_ms || dt >= imu_ms*1.95 ){
+            imuTime = (imuTime - dt) + imu_ms;
+            dt = imu_ms;
+            // std::cout << "Correcting DT to: " << dt << std::endl;
+        }
+        //assert(dt > 0);
+
         lastImuT_imu = imuTime;
 
         // integrate this single imu message
